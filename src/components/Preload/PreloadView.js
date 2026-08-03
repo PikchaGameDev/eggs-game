@@ -1,5 +1,6 @@
-import { Assets, Container, Sprite, Texture } from "pixi.js";
+import { Container, Sprite } from "pixi.js";
 import { APP_HEIGHT, APP_WIDTH } from "../../constants";
+import { getDomTexture } from "../../utils/domAssets";
 import { progressBar } from "../ProgressBar/ProgressBar";
 
 export class PreloadView {
@@ -8,9 +9,7 @@ export class PreloadView {
   background;
 
   async build() {
-    const backgroundTexture = new Texture(
-      await Assets.load(`assets/textures/preload_background.png`)
-    );
+    const backgroundTexture = await getDomTexture("PreloadBackground");
 
     this.background = new Sprite(backgroundTexture);
     this.background.anchor.set(0.5);
@@ -21,11 +20,15 @@ export class PreloadView {
     this.updateElementsScale();
   }
 
-  updateElementsScale() {
+  updateElementsScale(screenWidth = APP_WIDTH, screenHeight = APP_HEIGHT) {
+    const scale = Math.max(
+      screenWidth / this.background.texture.width,
+      screenHeight / this.background.texture.height
+    );
     const elementsScale = [
       {
-        x: 0.5,
-        y: 0.7,
+        x: scale,
+        y: scale,
       },
     ];
 
@@ -34,9 +37,9 @@ export class PreloadView {
     });
   }
 
-  updateElementsPositions() {
-    const centerX = APP_WIDTH / 2;
-    const centerY = APP_HEIGHT / 2;
+  updateElementsPositions(screenWidth = APP_WIDTH, screenHeight = APP_HEIGHT) {
+    const centerX = screenWidth / 2;
+    const centerY = screenHeight / 2;
 
     const elementsPosition = [
       {
@@ -53,6 +56,11 @@ export class PreloadView {
       element.x = elementsPosition[i].x;
       element.y = elementsPosition[i].y;
     });
+  }
+
+  resize(screenWidth, screenHeight) {
+    this.updateElementsScale(screenWidth, screenHeight);
+    this.updateElementsPositions(screenWidth, screenHeight);
   }
 
   getView() {

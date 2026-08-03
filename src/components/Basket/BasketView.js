@@ -7,6 +7,9 @@ export class BasketView {
 
   basket;
   tile;
+  layoutWidth = APP_WIDTH;
+  layoutHeight = APP_HEIGHT;
+  travelOffset = 0;
 
   build() {
     const textureBasket = atlasStore.getTextureFromAtlas(
@@ -42,17 +45,26 @@ export class BasketView {
   }
 
   updateElementsPositions() {
-    const centerX = APP_WIDTH / 2;
-    const centerY = APP_HEIGHT / 2;
+    const centerX = this.layoutWidth / 2;
+    const centerY = this.layoutHeight / 2;
+    const isDesktop = this.layoutWidth > this.layoutHeight;
+    const basketStart = isDesktop
+      ? { x: centerX - 65, y: 38 }
+      : { x: centerX - 90, y: centerY - 60 };
+    const tileStart = isDesktop
+      ? { x: centerX - 65, y: 68 }
+      : { x: centerX - 90, y: centerY - 30 };
+    const travelX = isDesktop ? 0 : this.travelOffset;
+    const travelY = isDesktop ? this.travelOffset : 0;
 
     const elementsPosition = [
       {
-        x: centerX - 90,
-        y: centerY - 60,
+        x: basketStart.x + travelX,
+        y: basketStart.y + travelY,
       },
       {
-        x: centerX - 90,
-        y: centerY - 30,
+        x: tileStart.x + travelX,
+        y: tileStart.y + travelY,
       },
     ];
 
@@ -79,7 +91,15 @@ export class BasketView {
     this.basketContainer.addChild(this.tile);
   }
 
-  resize() {
+  setTravelOffset(travelOffset) {
+    this.travelOffset = travelOffset;
+    this.updateElementsPositions();
+  }
+
+  resize(screenWidth = APP_WIDTH, screenHeight = APP_HEIGHT, travelOffset = 0) {
+    this.layoutWidth = screenWidth;
+    this.layoutHeight = screenHeight;
+    this.travelOffset = travelOffset;
     this.updateElementsScale();
     this.updateElementsPositions();
   }

@@ -1,7 +1,6 @@
 import { Container, Sprite } from "pixi.js";
 import { APP_HEIGHT, APP_WIDTH } from "../../constants";
 import { textureStore } from "../../stores/TextureStore";
-import { atlasStore } from "../../stores/AtlasStore";
 
 export class RoomView {
   roomContainer = new Container();
@@ -12,7 +11,7 @@ export class RoomView {
     const backgroundTexture = textureStore.getTexture("backgroundTexture");
 
     this.background = new Sprite(backgroundTexture);
-    this.background.anchor.x = 0.5;
+    this.background.anchor.set(0.5);
 
     this.roomContainer.addChild(this.background);
 
@@ -20,32 +19,47 @@ export class RoomView {
     this.updateElementsPositions();
   }
 
-  updateElementsScale() {
-    const elementsScale = [
-      {
-        x: 0.8,
-        y: 0.8,
-      },
-    ];
+  updateElementsScale(
+    screenWidth = APP_WIDTH,
+    screenHeight = APP_HEIGHT,
+    viewportWidth = screenWidth,
+    viewportHeight = screenHeight
+  ) {
+    const isDesktop = screenWidth > screenHeight;
+    const contentHeight = isDesktop ? viewportHeight : screenHeight * 0.6;
+    const scale = Math.max(
+      viewportWidth / this.background.texture.width,
+      contentHeight / this.background.texture.height,
+      isDesktop ? 0 : 0.8
+    );
 
-    [this.background].forEach((element, i) => {
-      element.scale = elementsScale[i];
-    });
+    this.background.scale.set(scale);
   }
 
-  updateElementsPositions() {
-    const centerX = APP_WIDTH / 2;
+  updateElementsPositions(screenWidth = APP_WIDTH, screenHeight = APP_HEIGHT) {
+    const centerX = screenWidth / 2;
+    const isDesktop = screenWidth > screenHeight;
 
     const elementsPosition = [
       {
         x: centerX,
-        y: 0,
+        y: isDesktop ? screenHeight / 2 : this.background.height / 2,
       },
     ];
 
     [this.background].forEach((element, i) => {
       element.position.set(elementsPosition[i].x, elementsPosition[i].y);
     });
+  }
+
+  resize(screenWidth, screenHeight, viewportWidth, viewportHeight) {
+    this.updateElementsScale(
+      screenWidth,
+      screenHeight,
+      viewportWidth,
+      viewportHeight
+    );
+    this.updateElementsPositions(screenWidth, screenHeight);
   }
 
   getView() {

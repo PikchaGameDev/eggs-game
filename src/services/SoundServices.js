@@ -1,10 +1,22 @@
 import { sound } from "@pixi/sound";
-import { SOUNDS } from "../constants";
+import miniWinUrl from "../../assets/audio/miniWin.mp3?inline";
+import musicUrl from "../../assets/audio/music.mp3?inline";
+import rollBackUrl from "../../assets/audio/rollBack.mp3?inline";
+import tapUrl from "../../assets/audio/tap.mp3?inline";
+import wrongUrl from "../../assets/audio/wrong.mp3?inline";
+
+const soundUrls = {
+  miniWin: miniWinUrl,
+  music: musicUrl,
+  rollBack: rollBackUrl,
+  tap: tapUrl,
+  wrong: wrongUrl,
+};
 
 class SoundService {
   constructor() {
-    SOUNDS.forEach((soundName) => {
-      sound.add(`${soundName}`, `assets/audio/${soundName}.mp3`);
+    Object.entries(soundUrls).forEach(([soundName, url]) => {
+      sound.add(soundName, url);
     });
   }
 

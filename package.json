@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "vite --config vite.mjs",
     "build": "vite build",
+    "build:single": "node scripts/build-single-html.mjs",
     "preview": "vite preview",
     "atlas": "free-tex-packer-cli --project ./assets/gui/atlas/gui_proj.ftpp --output ./assets/gui/atlas"
   },

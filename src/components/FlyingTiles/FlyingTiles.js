@@ -1,7 +1,12 @@
 import signal from "signal-js";
 import { FlyingTilesView } from "./FlyingTilesView";
 import { soundService } from "../../services/soundServices";
-import { TILES_SPEED_MAX, TILES_SPEED_MIN } from "../../constants";
+import {
+  TILES_INITIAL_SPEED,
+  TILES_SPEED_MAX,
+  TILES_SPEED_MIN,
+} from "../../constants";
+import { Point } from "pixi.js";
 
 export class FlyingTiles {
   view;
@@ -13,6 +18,8 @@ export class FlyingTiles {
   speedIncrements = [];
 
   isSoundWinPlay = false;
+  targetGlobalPosition = new Point();
+  targetLocalPosition = new Point();
 
   constructor() {
     this.view = new FlyingTilesView();
@@ -24,12 +31,12 @@ export class FlyingTiles {
     return this.view.getView();
   }
 
-  isCheckIntersection(entity, area) {
+  isCheckIntersection(entity, area, areaPosition = area.position) {
     return (
-      entity.x < area.x + area.width / 5 &&
-      entity.x + entity.width / 5 > area.x &&
-      entity.y < area.y + area.height / 5 &&
-      entity.y + entity.height / 5 > area.y
+      entity.x < areaPosition.x + area.width / 5 &&
+      entity.x + entity.width / 5 > areaPosition.x &&
+      entity.y < areaPosition.y + area.height / 5 &&
+      entity.y + entity.height / 5 > areaPosition.y
     );
   }
 
@@ -54,64 +61,93 @@ export class FlyingTiles {
   }
 
   moveTiles() {
-    let visibleTiles = 3;
+    let visibleTiles = 0;
+    this.targetTile.getGlobalPosition(this.targetGlobalPosition);
+    this.view.flyingTilesContainer.toLocal(
+      this.targetGlobalPosition,
+      undefined,
+      this.targetLocalPosition
+    );
 
     this.tiles.forEach(({ tile }, i) => {
-      if (this.isCheckIntersection(tile, this.targetTile)) {
-        !this.isSoundWinPlay && soundService.play("miniWin");
+      if (!tile.visible) {
+        return;
+      }
 
-        this.isSoundWinPlay = true;
+      visibleTiles++;
+
+      const deltaX = this.targetLocalPosition.x - tile.x;
+      const deltaY = this.targetLocalPosition.y - tile.y;
+      const distance = Math.hypot(deltaX, deltaY);
+
+      this.speed[i] += this.speedIncrements[i];
+      const movement = Math.min(this.speed[i], distance);
+
+      if (distance > 0) {
+        tile.x += (deltaX / distance) * movement;
+        tile.y += (deltaY / distance) * movement;
+      }
+
+      if (
+        movement === distance ||
+        this.isCheckIntersection(
+          tile,
+          this.targetTile,
+          this.targetLocalPosition
+        )
+      ) {
+        tile.position.copyFrom(this.targetLocalPosition);
         tile.visible = false;
         visibleTiles--;
+
+        if (!this.isSoundWinPlay) {
+          soundService.play("miniWin");
+          this.isSoundWinPlay = true;
+        }
       }
-
-      tile.x += tile.x < this.targetTile.x ? this.speed[i].x : -this.speed[i].x;
-
-      if (tile.y > this.targetTile.y) {
-        tile.y -= this.speed[i].y;
-      }
-
-      this.speed[i].x += this.speedIncrements[i].x;
-      this.speed[i].y += this.speedIncrements[i].y;
     });
 
     return visibleTiles;
   }
 
-  speedCalculation() {
+  speedCalculation(targetPosition) {
     this.tiles.forEach(({ tile }) => {
+      const horizontalDistance = Math.abs(tile.x - targetPosition.x);
+      const verticalDistance = Math.abs(tile.y - targetPosition.y);
+
       this.speedIncrements.push(
-        tile.y - this.targetTile.y >
-          Math.max(tile.x, this.targetTile.x) -
-            Math.min(tile.x, this.targetTile.x)
-          ? { x: TILES_SPEED_MIN, y: TILES_SPEED_MAX }
-          : { x: TILES_SPEED_MAX, y: TILES_SPEED_MIN }
+        verticalDistance > horizontalDistance
+          ? TILES_SPEED_MAX
+          : TILES_SPEED_MIN
       );
 
-      this.speed.push({
-        x: 0,
-        y: 0,
-      });
+      this.speed.push(TILES_INITIAL_SPEED);
     });
   }
 
   handleGetTarget(targetTile) {
     this.targetTile = targetTile;
 
-    this.tiles.forEach(({ tile }) => {
-      const globalCoords = tile.toGlobal(
-        this.view.flyingTilesContainer.parent.position
-      );
+    this.targetTile.getGlobalPosition(this.targetGlobalPosition);
+    this.view.flyingTilesContainer.toLocal(
+      this.targetGlobalPosition,
+      undefined,
+      this.targetLocalPosition
+    );
 
-      tile.x = globalCoords.x;
-      tile.y = globalCoords.y;
+    this.tiles.forEach(({ tile }) => {
+      const globalCoords = tile.getGlobalPosition();
 
       tile.visible = true;
-
       this.view.flyingTilesContainer.addChild(tile);
+      this.view.flyingTilesContainer.toLocal(
+        globalCoords,
+        undefined,
+        tile.position
+      );
     });
 
-    this.speedCalculation();
+    this.speedCalculation(this.targetLocalPosition);
   }
 
   openConnections() {
@@ -121,9 +157,5 @@ export class FlyingTiles {
       this.tiles = tiles;
     });
 
-    signal.on("update_target_pos", (x, y) => {
-      this.tiles.x = x;
-      this.tiles.y = y;
-    });
   }
 }

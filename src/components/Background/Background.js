@@ -12,4 +12,8 @@ export class Background {
   getView() {
     return this.view.getView();
   }
+
+  resize(screenWidth, screenHeight) {
+    this.view.resize(screenWidth, screenHeight);
+  }
 }

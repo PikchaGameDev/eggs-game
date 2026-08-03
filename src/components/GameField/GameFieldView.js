@@ -16,6 +16,8 @@ export class GameFieldView {
   tiles = [];
 
   board;
+  layoutWidth = APP_WIDTH;
+  layoutHeight = APP_HEIGHT;
 
   build() {
     const boardTexture = textureStore.getTexture("woodTexture");
@@ -82,9 +84,10 @@ export class GameFieldView {
     return tileBackground;
   }
 
-  getTileElement() {
-    const tileElementName =
-      TILES_NAMES[Math.floor(Math.random() * TILES_NAMES.length)];
+  getTileElement(
+    tileElementName =
+      TILES_NAMES[Math.floor(Math.random() * TILES_NAMES.length)]
+  ) {
 
     const tileElementTexture = atlasStore.getTextureFromAtlas(
       "guiAtlas",
@@ -97,6 +100,31 @@ export class GameFieldView {
     tileElement.scale.y = 0.2;
 
     return tileElement;
+  }
+
+  ensureTargetCount(target, minimumCount = 3) {
+    const allTiles = this.tiles.flatMap((column) => column.container);
+    const targetCount = allTiles.filter(
+      (tile) => tile.children[1].label === target
+    ).length;
+    const missingCount = Math.max(0, minimumCount - targetCount);
+
+    allTiles
+      .filter((tile) => tile.children[1].label !== target)
+      .slice(0, missingCount)
+      .forEach((tile) => {
+        tile.children[1].destroy();
+        const targetElement = this.getTileElement(target);
+        targetElement.y = -8;
+        tile.addChild(targetElement);
+      });
+  }
+
+  getTargetTiles(target, amount = 3) {
+    return this.tiles
+      .flatMap((column) => column.container)
+      .filter((tile) => tile.children[1].label === target)
+      .slice(0, amount);
   }
 
   updateElementsScale() {
@@ -122,18 +150,39 @@ export class GameFieldView {
   }
 
   updateElementsPositions() {
-    const centerX = APP_WIDTH / 2;
-    const centerY = APP_HEIGHT / 2;
+    const centerX = this.layoutWidth / 2;
+    const centerY = this.layoutHeight / 2;
+    const isDesktop = this.layoutWidth > this.layoutHeight;
+    const boardX = isDesktop
+      ? this.layoutWidth - this.board.width / 2
+      : centerX;
+    const boardY = isDesktop
+      ? centerY
+      : this.layoutHeight - this.board.height / 2;
+    const boardLeft = boardX - this.board.width / 2;
+    const boardTop = boardY - this.board.height / 2;
 
     this.tiles.forEach((tilesColumn, i) => {
       tilesColumn.container.forEach((tileContainer, j) => {
-        tileContainer.x = 24 + i * 44.4;
-        tileContainer.y = centerY + 73 + j * 42.6;
+        if (tileContainer.parent !== this.tilesContainer) {
+          return;
+        }
+
+        tileContainer.x = (isDesktop ? boardLeft : 0) + 24 + i * 44.4;
+        tileContainer.y =
+          (isDesktop ? boardTop + 28 : centerY + 73) + j * 42.6;
         tileContainer.children[1].y = -8;
       });
     });
 
-    this.board.position.set(centerX, APP_HEIGHT - this.board.height / 2);
+    this.board.position.set(boardX, boardY);
+  }
+
+  resize(screenWidth, screenHeight) {
+    this.layoutWidth = screenWidth;
+    this.layoutHeight = screenHeight;
+    this.updateElementsScale();
+    this.updateElementsPositions();
   }
 
   getView() {

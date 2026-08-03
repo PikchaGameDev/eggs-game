@@ -8,6 +8,10 @@ export class GameField {
   trips = [];
   isElementsFly = false;
   currentTarget;
+  tutorialRound = 0;
+  tutorialRoundsAmount = 3;
+  tutorialTiles = [];
+  isTutorialActive = false;
 
   constructor() {
     this.view = new GameFieldView();
@@ -32,11 +36,15 @@ export class GameField {
   handleTileClick(tile, columnIndex, rowIndex) {
     const scale = tile.scale;
 
-    soundService.play("tap");
-
     if (this.isElementsFly || scale.x > 0.5 || this.trips.length === 3) {
       return;
     }
+
+    if (this.isTutorialActive && !this.tutorialTiles.includes(tile)) {
+      return;
+    }
+
+    soundService.play("tap");
 
     const pickedElement = {
       tile: tile,
@@ -61,6 +69,10 @@ export class GameField {
     tile.zIndex = 100;
 
     this.view.tilesContainer.sortChildren();
+
+    if (this.isTutorialActive) {
+      signal.emit("tutorial_tile_selected", tile);
+    }
 
     this.checkOnFullTrips();
   }
@@ -113,6 +125,12 @@ export class GameField {
     if (!this.checkTripsOnSameLabel(this.currentTarget)) {
       this.isElementsFly = true;
 
+      if (this.isTutorialActive) {
+        this.tutorialRound++;
+        this.isTutorialActive = false;
+        signal.emit("tutorial_stop");
+      }
+
       this.trips.forEach(({ tile }) => {
         tile.visible = false;
       });
@@ -131,6 +149,17 @@ export class GameField {
   openConnections() {
     signal.on("current_target", (target) => {
       this.currentTarget = target;
+      this.view.ensureTargetCount(target);
+
+      if (this.tutorialRound < this.tutorialRoundsAmount) {
+        this.tutorialTiles = this.view.getTargetTiles(target);
+        this.isTutorialActive = true;
+        signal.emit("tutorial_start", this.tutorialTiles);
+      } else {
+        this.tutorialTiles = [];
+        this.isTutorialActive = false;
+        signal.emit("tutorial_stop");
+      }
     });
 
     signal.on("fly_stop", () => {
@@ -140,5 +169,9 @@ export class GameField {
 
   getView() {
     return this.view.getView();
+  }
+
+  resize(screenWidth, screenHeight) {
+    this.view.resize(screenWidth, screenHeight);
   }
 }

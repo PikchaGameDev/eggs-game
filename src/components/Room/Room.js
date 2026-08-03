@@ -12,4 +12,13 @@ export class Room {
   getView() {
     return this.view.getView();
   }
+
+  resize(screenWidth, screenHeight, viewportWidth, viewportHeight) {
+    this.view.resize(
+      screenWidth,
+      screenHeight,
+      viewportWidth,
+      viewportHeight
+    );
+  }
 }

@@ -12,6 +12,7 @@ export class BackgroundView {
 
     this.background = new Sprite(texture);
     this.background.anchor.set(0.5);
+    this.background.eventMode = "none";
 
     this.backgroundContainer.addChild(this.background);
 
@@ -19,11 +20,12 @@ export class BackgroundView {
     this.updateElementsPositions();
   }
 
-  updateElementsScale() {
+  updateElementsScale(screenWidth = APP_WIDTH, screenHeight = APP_HEIGHT) {
+    const isDesktop = screenWidth > screenHeight;
     const elementsScale = [
       {
-        x: 0.5,
-        y: 0.5,
+        x: isDesktop ? 0 : 0.5,
+        y: isDesktop ? 0 : 0.5,
       },
     ];
 
@@ -32,9 +34,9 @@ export class BackgroundView {
     });
   }
 
-  updateElementsPositions() {
-    const centerX = APP_WIDTH / 2;
-    const centerY = APP_HEIGHT / 2;
+  updateElementsPositions(screenWidth = APP_WIDTH, screenHeight = APP_HEIGHT) {
+    const centerX = screenWidth / 2;
+    const centerY = screenHeight / 2;
 
     const elementsPosition = [
       {
@@ -47,6 +49,12 @@ export class BackgroundView {
       element.x = elementsPosition[i].x;
       element.y = elementsPosition[i].y;
     });
+  }
+
+  resize(screenWidth, screenHeight) {
+    this.updateElementsScale(screenWidth, screenHeight);
+    this.updateElementsPositions(screenWidth, screenHeight);
+    this.background.visible = screenWidth <= screenHeight;
   }
 
   getView() {
